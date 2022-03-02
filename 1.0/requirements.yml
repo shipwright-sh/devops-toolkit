@@ -1,0 +1,15 @@
+---
+
+collections:
+  - name: community.general
+    version: 4.2.0
+
+roles:
+  - name: ansible
+    src: xanmanning.controller
+  - name: terraform
+    src: xanmanning.terraform
+  - name: helm
+    src: xanmanning.helm
+  - name: kubectl
+    src: xanmanning.kubectl

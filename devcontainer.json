@@ -1,0 +1,6 @@
+{
+  "name": "devops-toolkit",
+  "build": {
+    "dockerfile": "./1.0/dockerfile"
+  }
+}

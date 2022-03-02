@@ -1,0 +1,125 @@
+---
+
+- name: Configure Platform Toolkit
+  hosts: workstation
+  vars:
+    controller_ansible_version: "{{ lookup('env', 'ANSIBLE_VERSION') | default(false, true) }}"
+    terraform_version: "{{ lookup('env', 'TERRAFORM_VERSION') | default(false, true) }}"
+    helm_version: "{{ lookup('env', 'HELM_VERSION') | default(false, true) }}"
+    kubectl_version: "{{ lookup('env', 'KUBECTL_VERSION') | default(false, true) }}"
+    gcloud_version: "{{ lookup('env', 'GCLOUD_VERSION') | default('345.0.0', true) }}"
+    platform_install_role:
+      - ansible
+      - terraform
+      - helm
+      - kubectl
+    pip_install_packages:
+      - bashate
+    platform_download_packages:
+      - name: grype
+        repo: anchore/grype
+        version: "{{ lookup('env', 'GRYPE_VERSION') | default('latest', true) }}"
+        filename: "grype_%NVERSION%_%OS%_%ARCH%.tar.gz"
+      - name: krew
+        repo: kubernetes-sigs/krew
+        version: "{{ lookup('env', 'KREW_VERSION') | default('latest', true) }}"
+        filename: "krew-%OS%_%ARCH%.tar.gz"
+        extracted_filename: "krew-%OS%_%ARCH%"
+      - name: kube-linter
+        repo: stackrox/kube-linter
+        version: "{{ lookup('env', 'KUBE_LINTER_VERSION') | default('latest', true) }}"
+        filename: "kube-linter-%OS%.tar.gz"
+      - name: kubeconform
+        repo: yannh/kubeconform
+        version: "{{ lookup('env', 'KUBECONFORM_VERSION') | default('latest', true) }}"
+        filename: "kubeconform-%OS%-%ARCH%.tar.gz"
+      - name: tfsec
+        repo: aquasecurity/tfsec
+        version: "{{ lookup('env', 'TFSEC_VERSION') | default('latest', true) }}"
+        filename: "tfsec-%OS%-%ARCH%"
+      - name: tk
+        repo: grafana/tanka
+        version: "{{ lookup('env', 'TK_VERSION') | default('latest', true) }}"
+        filename: "tk-%OS%-%ARCH%"
+      - name: jb
+        repo: jsonnet-bundler/jsonnet-bundler
+        version: "{{ lookup('env', 'JB_VERSION') | default('latest', true) }}"
+        filename: "jb-%OS%-%ARCH%"
+  tasks:
+    # Running pre-defined roles
+    - name: Ensure roles are executed
+      include_role:
+        name: "{{ role }}"
+      loop_control:
+        loop_var: role
+      loop: "{{ platform_install_role }}"
+
+    # Install pip packages
+    - name: Ensure pip_install_packages are installed.
+      ansible.builtin.pip:
+        name: "{{ pip_pkg.name | default(pip_pkg) }}"
+        version: "{{ pip_pkg.version | default(omit) }}"
+        virtualenv: "{{ pip_pkg.virtualenv | default(omit) }}"
+        state: "{{ pip_pkg.state | default(omit) }}"
+        executable: "{{ pip_executable | default(omit) }}"
+      loop_control:
+        loop_var: pip_pkg
+      loop: "{{ pip_install_packages }}"
+
+    # Install gcloud
+    - name: Ensure gcloud installer is downloaded and extracted
+      ansible.builtin.unarchive:
+        src: "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-{{ gcloud_version }}-linux-x86_64.tar.gz"
+        dest: "{{ ansible_user_dir }}/bin"
+        remote_src: true
+
+    - name: Ensure gcloud is installed
+      ansible.builtin.command:
+        cmd: "{{ ansible_user_dir }}/bin/google-cloud-sdk/install.sh"
+        creates: "{{ ansible_user_dir }}/.config/gcloud"
+
+    # Install helm-diff
+    - name: Ensure helm-diff is installed
+      ansible.builtin.command:
+        cmd: "{{ ansible_user_dir }}/bin/helm plugin install https://github.com/databus23/helm-diff"
+        creates: "{{ ansible_user_dir }}/.local/share/helm/plugins/helm-diff"
+
+    # Install Binaries from GitHub
+    - name: Ensure GitHub packages are downloaded
+      include_tasks: github_download.yml
+      loop: "{{ platform_download_packages }}"
+      loop_control:
+        loop_var: github_pkg
+
+    # Install OhMyZsh
+    - name: Ensure OhMyZshs installer is downloaded
+      ansible.builtin.get_url:
+        url: "https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh"
+        dest: "/tmp/ohmyzsh.sh"
+        mode: '0700'
+
+    - name: Ensure OhMyZsh is installed
+      ansible.builtin.command:
+        cmd: "/tmp/ohmyzsh.sh --unattended"
+        creates: "{{ ansible_user_dir }}/.oh-my-zsh"
+
+    - name: Ensure zshrc is configured
+      ansible.builtin.copy:
+        dest: "{{ ansible_user_dir }}/.zshrc"
+        mode: '0600'
+        content: |
+          ### OhMyZsh Config
+          export ZSH="$HOME/.oh-my-zsh"
+
+          ZSH_THEME="robbyrussell"
+
+          plugins=(git)
+
+          source $ZSH/oh-my-zsh.sh
+
+          ### Paths for installed binaries
+          export PATH="/usr/local/bin:/usr/bin:/bin"
+          export PATH="{{ ansible_user_dir }}/bin:${PATH}"
+          export PATH="{{ ansible_user_dir }}/.local/bin:${PATH}"
+          export PATH="{{ ansible_user_dir }}/bin/google-cloud-sdk/bin:${PATH}"
+          # export PATH="${KREW_ROOT:-${HOME}/.krew}/bin:${PATH}"

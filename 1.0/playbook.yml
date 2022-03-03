@@ -8,6 +8,7 @@
     helm_version: "{{ lookup('env', 'HELM_VERSION') | default(false, true) }}"
     kubectl_version: "{{ lookup('env', 'KUBECTL_VERSION') | default(false, true) }}"
     gcloud_version: "{{ lookup('env', 'GCLOUD_VERSION') | default('345.0.0', true) }}"
+    awscli_version: "{{ lookup('env', 'AWSCLI_VERSION') | default(false, true) }}"
     platform_install_role:
       - ansible
       - terraform
@@ -25,14 +26,6 @@
         version: "{{ lookup('env', 'KREW_VERSION') | default('latest', true) }}"
         filename: "krew-%OS%_%ARCH%.tar.gz"
         extracted_filename: "krew-%OS%_%ARCH%"
-      - name: kube-linter
-        repo: stackrox/kube-linter
-        version: "{{ lookup('env', 'KUBE_LINTER_VERSION') | default('latest', true) }}"
-        filename: "kube-linter-%OS%.tar.gz"
-      - name: kubeconform
-        repo: yannh/kubeconform
-        version: "{{ lookup('env', 'KUBECONFORM_VERSION') | default('latest', true) }}"
-        filename: "kubeconform-%OS%-%ARCH%.tar.gz"
       - name: tfsec
         repo: aquasecurity/tfsec
         version: "{{ lookup('env', 'TFSEC_VERSION') | default('latest', true) }}"
@@ -45,6 +38,10 @@
         repo: jsonnet-bundler/jsonnet-bundler
         version: "{{ lookup('env', 'JB_VERSION') | default('latest', true) }}"
         filename: "jb-%OS%-%ARCH%"
+      - name: kind
+        repo: kubernetes-sigs/kind
+        version: "{{ lookup('env', 'KIND_VERSION') | default('latest', true) }}"
+        filename: "kind-%OS%-%ARCH%"
   tasks:
     # Running pre-defined roles
     - name: Ensure roles are executed
@@ -77,6 +74,17 @@
       ansible.builtin.command:
         cmd: "{{ ansible_user_dir }}/bin/google-cloud-sdk/install.sh"
         creates: "{{ ansible_user_dir }}/.config/gcloud"
+
+    # Install awscli
+    - name: Ensure awscli install in downloaded end extracted
+      ansible.builtin.unarchive:
+        src: "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-{{ awscli_version}}.zip"
+        dest: "{{ ansible_user_dir }}/bin"
+        remote_src: true
+
+    - name: Ensure awscli is installed
+      ansible.builtin.command:
+        cmd: "{{ ansible_user_dir }}/bin/aws/install -i {{ ansible_user_dir }}/bin"
 
     # Install helm-diff
     - name: Ensure helm-diff is installed

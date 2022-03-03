@@ -4,7 +4,8 @@ ENV ANSIBLE_VERSION=4.10.0 \
     TERRAFORM_VERSION=1.0.1 \
     HELM_VERSION=3.6.3 \
     KUBECTL_VERSION=1.22.1 \
-    GCLOUD_VERSION=347.0.0
+    GCLOUD_VERSION=347.0.0 \
+    AWSCLI_VERSION=2.0.0
 
 RUN apk add -U --no-cache \
         ansible \
@@ -58,11 +59,13 @@ RUN ansible-galaxy install -fr /tmp/requirements.yml \
 FROM alpine:3.15 AS workstation
 
 RUN apk add -U --no-cache \
+        sudo \
         bash \
         bat \
         bind-tools \
         curl \
         dasel \
+        podman \
         docker \
         docker-compose \
         fzf \
@@ -79,7 +82,7 @@ RUN apk add -U --no-cache \
     && adduser -D -s /bin/zsh devops \
     && addgroup devops docker \
     && addgroup devops ping \
-    && ln -s /var/run/docker-host.sock /var/run/docker.sock
+    && ln -s /var/run/docker.sock /var/run/docker.sock
 
 COPY --from=builder --chown=devops:devops /home/devops /home/devops
 

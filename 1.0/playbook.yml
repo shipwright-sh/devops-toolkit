@@ -42,6 +42,10 @@
         repo: kubernetes-sigs/kind
         version: "{{ lookup('env', 'KIND_VERSION') | default('latest', true) }}"
         filename: "kind-%OS%-%ARCH%"
+      - name: terraform-docs
+        repo: terraform-docs/terraform-docs
+        version: "{{ lookup('env', 'TFDOCS_VERSION') | default('latest', true) }}"
+        filename: "terraform-docs-%VERSION%-%OS%-%ARCH%.tar.gz"
   tasks:
     # Running pre-defined roles
     - name: Ensure roles are executed

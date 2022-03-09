@@ -10,6 +10,7 @@ ENV ANSIBLE_VERSION=4.10.0 \
 RUN apk add -U --no-cache \
         ansible \
         bash \
+        zsh \
         build-base \
         coreutils \
         curl \
@@ -37,15 +38,14 @@ RUN apk add -U --no-cache \
         sudo \
         tar \
         unzip \
-        zsh \
     && mkdir -p /tmp/ansible/{roles,collections} \
     && chmod -R 1777 /tmp/ansible \
-    && adduser -D -s /bin/zsh devops \
+    && adduser -D -s /bin/bash devops \
     && ln -s /bin/touch /usr/bin/touch
 
 USER devops
 WORKDIR /home/devops
-ENV SHELL=/bin/zsh \
+ENV SHELL=/bin/bash \
 	USER=devops
 
 COPY *.yml /tmp/
@@ -59,8 +59,8 @@ RUN ansible-galaxy install -fr /tmp/requirements.yml \
 FROM alpine:3.15 AS workstation
 
 RUN apk add -U --no-cache \
-        sudo \
         bash \
+        zsh \
         bat \
         bind-tools \
         curl \
@@ -76,15 +76,16 @@ RUN apk add -U --no-cache \
         perl \
         python3 \
         shellcheck \
+        socat \
         sudo \
         vim \
-        zsh \
     && adduser -D -s /bin/zsh devops \
-    && addgroup devops docker \
-    && addgroup devops ping \
-    && ln -s /var/run/docker.sock /var/run/docker.sock
+    && echo "devops ALL = NOPASSWD: /usr/local/bin/docker-socat \"\"" \
+        > /etc/sudoers.d/docker-socat \
+    && ln -s /var/run/docker-host.sock /var/run/docker.sock
 
 COPY --from=builder --chown=devops:devops /home/devops /home/devops
+COPY --chmod=755 ./docker-socat.sh /usr/local/bin/docker-socat
 
 USER devops
 WORKDIR /home/devops

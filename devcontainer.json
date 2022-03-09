@@ -1,6 +1,20 @@
 {
   "name": "devops-toolkit",
-  "build": {
-    "dockerfile": "./1.0/dockerfile"
-  }
+  "image": "docker.io/lmctague/devops-toolkit:0.1.0",
+  "extensions": [
+    "ms-kubernetes-tools.vscode-kubernetes-tools",
+    "ms-azuretools.vscode-docker",
+    "redhat.vscode-yaml"
+  ],
+  "containerEnv": {
+    "DOCKER_SOCAT_DEBUG": "false"
+  },
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker-host.sock,type=bind"
+  ],
+  "runArgs": [
+    "--init"
+  ],
+  "remoteUser": "devops",
+  "updateRemoteUserUID": true
 }

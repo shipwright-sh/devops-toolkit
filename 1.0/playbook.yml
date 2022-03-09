@@ -135,3 +135,8 @@
           export PATH="{{ ansible_user_dir }}/.local/bin:${PATH}"
           export PATH="{{ ansible_user_dir }}/bin/google-cloud-sdk/bin:${PATH}"
           # export PATH="${KREW_ROOT:-${HOME}/.krew}/bin:${PATH}"
+
+          ### docker-socat script for VSCode devcontainers
+          if [ -f /usr/local/bin/docker-socat ] ; then
+            [ -n "${REMOTE_CONTAINERS:-}" ] && sudo docker-socat
+          fi

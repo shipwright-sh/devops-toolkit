@@ -1,6 +1,6 @@
 {
   "name": "devops-toolkit",
-  "image": "docker.io/lmctague/devops-toolkit:0.1.0",
+  "image": "docker.io/lmctague/devops-toolkit:0.2.0",
   "extensions": [
     "ms-kubernetes-tools.vscode-kubernetes-tools",
     "ms-azuretools.vscode-docker",

@@ -9,11 +9,13 @@
     kubectl_version: "{{ lookup('env', 'KUBECTL_VERSION') | default(false, true) }}"
     gcloud_version: "{{ lookup('env', 'GCLOUD_VERSION') | default('345.0.0', true) }}"
     awscli_version: "{{ lookup('env', 'AWSCLI_VERSION') | default(false, true) }}"
+    packer_version: "{{ lookup('env', 'PACKER_VERSION') | default(false, true) }}"
     platform_install_role:
       - ansible
       - terraform
       - helm
       - kubectl
+      - packer
     pip_install_packages:
       - bashate
     platform_download_packages:

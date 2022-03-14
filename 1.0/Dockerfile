@@ -5,7 +5,8 @@ ENV ANSIBLE_VERSION=4.10.0 \
     HELM_VERSION=3.6.3 \
     KUBECTL_VERSION=1.22.1 \
     GCLOUD_VERSION=347.0.0 \
-    AWSCLI_VERSION=2.0.0
+    AWSCLI_VERSION=2.0.0 \
+    PACKER_VERSION=1.8.0
 
 RUN apk add -U --no-cache \
         ansible \

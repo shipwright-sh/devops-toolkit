@@ -13,3 +13,5 @@ roles:
     src: xanmanning.helm
   - name: kubectl
     src: xanmanning.kubectl
+  - name: packer
+    src: klaatu51.packer

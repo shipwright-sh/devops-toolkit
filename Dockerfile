@@ -6,12 +6,12 @@ ENV ANSIBLE_VERSION=4.10.0 \
     KUBECTL_VERSION=1.22.1 \
     GCLOUD_VERSION=347.0.0 \
     AWSCLI_VERSION=2.0.0 \
-    PACKER_VERSION=1.8.0
+    PACKER_VERSION=1.8.0 \
+    VAULT_VERSION=1.9.4
 
 RUN apk add -U --no-cache \
         ansible \
         bash \
-        zsh \
         build-base \
         coreutils \
         curl \
@@ -49,8 +49,7 @@ WORKDIR /home/devops
 ENV SHELL=/bin/bash \
 	USER=devops
 
-COPY *.yml /tmp/
-COPY ansible.cfg ansible.cfg
+COPY ./ansible/* /tmp/
 
 RUN ansible-galaxy install -fr /tmp/requirements.yml \
     && ansible-playbook -v -i /tmp/inventory.yml /tmp/playbook.yml \
@@ -61,7 +60,6 @@ FROM alpine:3.15 AS workstation
 
 RUN apk add -U --no-cache \
         bash \
-        zsh \
         bat \
         bind-tools \
         curl \
@@ -80,7 +78,7 @@ RUN apk add -U --no-cache \
         socat \
         sudo \
         vim \
-    && adduser -D -s /bin/zsh devops \
+    && adduser -D -s /bin/bash devops \
     && echo "devops ALL = NOPASSWD: /usr/local/bin/docker-socat \"\"" \
         > /etc/sudoers.d/docker-socat \
     && ln -s /var/run/docker-host.sock /var/run/docker.sock

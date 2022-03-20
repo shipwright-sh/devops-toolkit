@@ -15,3 +15,5 @@ roles:
     src: xanmanning.kubectl
   - name: packer
     src: klaatu51.packer
+  - name: vault
+    src: klaatu51.vault

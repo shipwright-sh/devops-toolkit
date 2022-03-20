@@ -10,19 +10,20 @@
     gcloud_version: "{{ lookup('env', 'GCLOUD_VERSION') | default('345.0.0', true) }}"
     awscli_version: "{{ lookup('env', 'AWSCLI_VERSION') | default(false, true) }}"
     packer_version: "{{ lookup('env', 'PACKER_VERSION') | default(false, true) }}"
+    vault_version: "{{ lookup('env', 'VAULT_VERSION') | default(false, true) }}"
     platform_install_role:
       - ansible
       - terraform
       - helm
       - kubectl
       - packer
+      - vault
     pip_install_packages:
       - bashate
+      - kube-hunter
+      - molecule
+      - awscli
     platform_download_packages:
-      - name: grype
-        repo: anchore/grype
-        version: "{{ lookup('env', 'GRYPE_VERSION') | default('latest', true) }}"
-        filename: "grype_%NVERSION%_%OS%_%ARCH%.tar.gz"
       - name: krew
         repo: kubernetes-sigs/krew
         version: "{{ lookup('env', 'KREW_VERSION') | default('latest', true) }}"
@@ -32,6 +33,10 @@
         repo: aquasecurity/tfsec
         version: "{{ lookup('env', 'TFSEC_VERSION') | default('latest', true) }}"
         filename: "tfsec-%OS%-%ARCH%"
+      - name: trivy
+        repo: aquasecurity/trivy
+        version: "{{ lookup('env', 'TRIVY_VERSION') | default('latest', true) }}"
+        filename: "trivy_%NVERSION%_%OS%-64bit.tar.gz"
       - name: tk
         repo: grafana/tanka
         version: "{{ lookup('env', 'TK_VERSION') | default('latest', true) }}"
@@ -81,17 +86,6 @@
         cmd: "{{ ansible_user_dir }}/bin/google-cloud-sdk/install.sh"
         creates: "{{ ansible_user_dir }}/.config/gcloud"
 
-    # Install awscli
-    - name: Ensure awscli install in downloaded end extracted
-      ansible.builtin.unarchive:
-        src: "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-{{ awscli_version}}.zip"
-        dest: "{{ ansible_user_dir }}/bin"
-        remote_src: true
-
-    - name: Ensure awscli is installed
-      ansible.builtin.command:
-        cmd: "{{ ansible_user_dir }}/bin/aws/install -i {{ ansible_user_dir }}/bin"
-
     # Install helm-diff
     - name: Ensure helm-diff is installed
       ansible.builtin.command:
@@ -105,40 +99,140 @@
       loop_control:
         loop_var: github_pkg
 
-    # Install OhMyZsh
-    - name: Ensure OhMyZshs installer is downloaded
+    # Install OhMyBash
+    - name: Ensure OhMyBash installer is downloaded
       ansible.builtin.get_url:
-        url: "https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh"
-        dest: "/tmp/ohmyzsh.sh"
+        url: https://raw.githubusercontent.com/ohmybash/oh-my-bash/master/tools/install.sh
+        dest: /tmp/ohmybash.sh
         mode: '0700'
 
-    - name: Ensure OhMyZsh is installed
+    - name: Ensure OhMyBash is installed
       ansible.builtin.command:
-        cmd: "/tmp/ohmyzsh.sh --unattended"
-        creates: "{{ ansible_user_dir }}/.oh-my-zsh"
+        cmd: /tmp/ohmybash.sh --unattended
+        creates: "{{ ansible_user_dir }}/.oh-my-bash"
 
-    - name: Ensure zshrc is configured
+    - name: Ensure .fzf.bash is installed
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/junegunn/fzf/master/shell/key-bindings.bash
+        dest: "{{ ansible_user_dir }}/.fzf.bash"
+        mode: '0600'
+
+    - name: Ensure bashrc is configured
       ansible.builtin.copy:
-        dest: "{{ ansible_user_dir }}/.zshrc"
+        dest: "{{ ansible_user_dir }}/.bashrc"
         mode: '0600'
         content: |
-          ### OhMyZsh Config
-          export ZSH="$HOME/.oh-my-zsh"
+          ### Paths for installed binaries
+          export PATH="/usr/local/bin:/usr/bin:/bin"
+          export PATH="{{ ansible_user_dir }}/bin:${PATH}"
+          export PATH="{{ ansible_user_dir }}/.local/bin:${PATH}"
+          export PATH="{{ ansible_user_dir }}/bin/google-cloud-sdk/bin:${PATH}"
+          export PATH="${KREW_ROOT:-${HOME}/.krew}/bin:${PATH}"
 
-          ZSH_THEME="robbyrussell"
+          ### OhMyBash Config
+          # Enable the subsequent settings only in interactive sessions
+          case $- in
+            *i*) ;;
+              *) return;;
+          esac
 
-          plugins=(git)
+          # Path to your oh-my-bash installation.
+          export OSH={{ ansible_user_dir }}/.oh-my-bash
 
-          source $ZSH/oh-my-zsh.sh
+          OSH_THEME="sirup"
+          DISABLE_AUTO_UPDATE="true"
+          completions=(
+            git
+            docker
+            kubectl
+            ssh
+            vault
+          )
+          aliases=(
+            general
+          )
+          plugins=(
+            git
+            bashmarks
+            kubectl
+          )
+
+          source "$OSH"/oh-my-bash.sh
+
+          ### fzf configuration
+          if [ -f "${HOME}/.fzf.bash" ] ; then
+            source "${HOME}/.fzf.bash"
+          fi
+
+          ### Workstation inherited config
+          if [ -d "${HOST_HOME:-/remote}" ] ; then
+            # K/V pairs
+            declare -A SYMLINK_PATHS
+
+            # ansible
+            SYMLINK_PATHS[".ansible"]=".ansible"
+            SYMLINK_PATHS[".ansible.cfg"]=".ansible.cfg"
+
+            # docker
+            SYMLINK_PATHS[".docker"]=".docker"
+
+            # gcloud
+            SYMLINK_PATHS[".gcp"]=".gcp"
+            SYMLINK_PATHS[".config/gcloud"]=".config/gcloud"
+
+            # gitconfig
+            SYMLINK_PATHS[".gitconfig"]=".gitconfig"
+
+            # kubectl
+            SYMLINK_PATHS[".kube"]=".kube"
+            SYMLINK_PATHS[".krew"]=".krew"
+            SYMLINK_PATHS[".kubectl_aliases"]=".kubectl_aliases"
+
+            # helm
+            SYMLINK_PATHS[".config/helm"]=".config/helm"
+            SYMLINK_PATHS[".cache/helm"]=".cache/helm"
+            SYMLINK_PATHS[".local/share/helm"]=".local/share/helm"
+            SYMLINK_PATHS["Library/Preferences/helm"]=".config/helm"
+            SYMLINK_PATHS["Library/Caches/helm"]=".cache/helm"
+
+            # ssh
+            SYMLINK_PATHS[".ssh"]=".ssh"
+            SYMLINK_PATHS[".ssh/config"]=".ssh/config"
+
+            # vault
+            SYMLINK_PATHS[".vault-token"]=".vault-token"
+
+            # vim
+            SYMLINK_PATHS[".vim"]=".vim"
+            SYMLINK_PATHS[".vimrc"]=".vimrc"
+
+            for k in "${!SYMLINK_PATHS[@]}" ; do
+              if [ ! -e "${HOME}/${SYMLINK_PATHS[${k}]}" ] \
+                && [ ! -d "${HOME}/${SYMLINK_PATHS[${k}]}" ] ; then
+                if [ -e "${HOST_HOME:-/remote}/${k}" ] ; then
+                  if [ ! -d "$(dirname "${HOME}/${SYMLINK_PATHS[${k}]}")" ] ; then
+                    mkdir -p "$(dirname "${HOME}/${SYMLINK_PATHS[${k}]}")"
+                  fi
+                  ln -s \
+                    "${HOST_HOME:-/remote}/${k}" \
+                    "${HOME}/${SYMLINK_PATHS[${k}]}"
+                fi
+              fi
+            done
+          fi
 
           ### Paths for installed binaries
           export PATH="/usr/local/bin:/usr/bin:/bin"
           export PATH="{{ ansible_user_dir }}/bin:${PATH}"
           export PATH="{{ ansible_user_dir }}/.local/bin:${PATH}"
           export PATH="{{ ansible_user_dir }}/bin/google-cloud-sdk/bin:${PATH}"
-          # export PATH="${KREW_ROOT:-${HOME}/.krew}/bin:${PATH}"
+          export PATH="${KREW_ROOT:-${HOME}/.krew}/bin:${PATH}"
 
           ### docker-socat script for VSCode devcontainers
           if [ -f /usr/local/bin/docker-socat ] ; then
             [ -n "${REMOTE_CONTAINERS:-}" ] && sudo docker-socat
           fi
+
+          ### Aliases
+          alias kctx='kubectl ctx'
+          alias kns='kubectl ns'

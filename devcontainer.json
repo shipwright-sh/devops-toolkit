@@ -7,9 +7,13 @@
     "redhat.vscode-yaml"
   ],
   "containerEnv": {
+    "LANG": "${localEnv:LANG}",
+    "HOST_USER": "${localEnv:USER}",
+    "HOST_HOME": "${localEnv:HOME}",
     "DOCKER_SOCAT_DEBUG": "false"
   },
   "mounts": [
+    "source=${localEnv:HOME},target=${localEnv:HOME},type=bind,consistency=cached",
     "source=/var/run/docker.sock,target=/var/run/docker-host.sock,type=bind"
   ],
   "runArgs": [

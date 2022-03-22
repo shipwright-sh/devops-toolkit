@@ -8,7 +8,6 @@
     helm_version: "{{ lookup('env', 'HELM_VERSION') | default(false, true) }}"
     kubectl_version: "{{ lookup('env', 'KUBECTL_VERSION') | default(false, true) }}"
     gcloud_version: "{{ lookup('env', 'GCLOUD_VERSION') | default('345.0.0', true) }}"
-    awscli_version: "{{ lookup('env', 'AWSCLI_VERSION') | default(false, true) }}"
     packer_version: "{{ lookup('env', 'PACKER_VERSION') | default(false, true) }}"
     vault_version: "{{ lookup('env', 'VAULT_VERSION') | default(false, true) }}"
     platform_install_role:
@@ -53,6 +52,10 @@
         repo: terraform-docs/terraform-docs
         version: "{{ lookup('env', 'TFDOCS_VERSION') | default('latest', true) }}"
         filename: "terraform-docs-%VERSION%-%OS%-%ARCH%.tar.gz"
+      - name: istiocli
+        repo: istio/istio
+        version: "{{ lookup('env', 'ISTIOCLI_VERSION') | default('latest', true) }}"
+        filename: "terraform-%NVERSION%-%OS%-%ARCH%.tar.gz"
   tasks:
     # Running pre-defined roles
     - name: Ensure roles are executed
@@ -236,3 +239,5 @@
           ### Aliases
           alias kctx='kubectl ctx'
           alias kns='kubectl ns'
+
+          [ -f ~/.kubectl_aliases ] && source ~/.kubectl_aliases

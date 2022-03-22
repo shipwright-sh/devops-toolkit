@@ -17,7 +17,8 @@
     "source=/var/run/docker.sock,target=/var/run/docker-host.sock,type=bind"
   ],
   "runArgs": [
-    "--init"
+    "--init",
+    "--network=host"
   ],
   "remoteUser": "devops",
   "updateRemoteUserUID": true

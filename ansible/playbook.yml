@@ -32,10 +32,10 @@
         repo: aquasecurity/tfsec
         version: "{{ lookup('env', 'TFSEC_VERSION') | default('latest', true) }}"
         filename: "tfsec-%OS%-%ARCH%"
-      - name: trivy
-        repo: aquasecurity/trivy
-        version: "{{ lookup('env', 'TRIVY_VERSION') | default('latest', true) }}"
-        filename: "trivy_%NVERSION%_%OS%-64bit.tar.gz"
+      - name: grype
+        repo: anchore/grype
+        version: "{{ lookup('env', 'GRYPE_VERSION') | default('latest', true) }}"
+        filename: "grype_%NVERSION%_%OS%_%ARCH%.tar.gz"
       - name: tk
         repo: grafana/tanka
         version: "{{ lookup('env', 'TK_VERSION') | default('latest', true) }}"

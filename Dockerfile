@@ -1,13 +1,13 @@
 FROM alpine:3.15 AS builder
 
-ENV ANSIBLE_VERSION=4.10.0 \
-    TERRAFORM_VERSION=1.0.1 \
-    HELM_VERSION=3.6.3 \
-    KUBECTL_VERSION=1.22.1 \
-    GCLOUD_VERSION=347.0.0 \
-    AWSCLI_VERSION=2.0.0 \
-    PACKER_VERSION=1.8.0 \
-    VAULT_VERSION=1.9.4
+# ENV ANSIBLE_VERSION=4.10.0 \
+#     TERRAFORM_VERSION=1.0.1 \
+#     HELM_VERSION=3.6.3 \
+#     KUBECTL_VERSION=1.22.1 \
+#     GCLOUD_VERSION=347.0.0 \
+#     AWSCLI_VERSION=2.0.0 \
+#     PACKER_VERSION=1.8.0 \
+#     VAULT_VERSION=1.9.4
 
 RUN apk add -U --no-cache \
         ansible \
@@ -74,7 +74,6 @@ RUN apk add -U --no-cache \
         openssh-client-default \
         perl \
         python3 \
-        shellcheck \
         socat \
         sudo \
         vim \

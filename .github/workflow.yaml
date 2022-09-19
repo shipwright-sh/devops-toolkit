@@ -1,0 +1,51 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  auth-and-push-image:
+    needs: test-rust-services
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Build local container
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./devops-toolkit/Dockerfile
+          push: false
+          load: true
+          tags: localbuild/devops-toolkit:${{ github.sha }}
+      - name: Scan image
+        uses: anchore/scan-action@v3
+        id: scan
+        with:
+          image: localbuild/devops-toolkit:${{ github.sha }}
+          fail-build: true
+          severity-cutoff: medium
+          acs-report-enable: true
+      - name: Upload Anchore scan SARIF report
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}
+      - name: Inspect action SARIF report
+        run: cat ${{ steps.scan.outputs.sarif }}
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: ./devops-toolkit/Dockerfile
+          push: ${{ github.event_name == 'push' }}
+          tags: lmctague/devops-toolkit:${{ github.sha }}

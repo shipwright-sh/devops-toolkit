@@ -1,0 +1,36 @@
+image: docker:latest
+
+stages:
+  - build
+  - scan
+  - publish
+
+before_script:
+  - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+
+build_image:
+  stage: build
+  script:
+    - mkdir ./build
+    - docker build . -t ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
+    - docker save ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA} > ./build/${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}.tar
+  artifacts:
+    paths:
+      - ./build
+
+scan_image:
+  stage: scan
+  script:
+    - docker load ./build/${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}.tar
+  variables:
+    DOCKER_IMAGE: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}"
+
+include:
+  - template: Security/Container-Scanning.gitlab-ci.yml
+
+bublish_image:
+  stage: publish
+  script:
+    - docker load ./build/devops-toolkit.tar
+    - docker tag devops-toolkit docker.io/lmctague/${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
+    - docker push docker.io/lmctague/${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}

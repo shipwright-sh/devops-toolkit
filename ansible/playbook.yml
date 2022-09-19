@@ -1,61 +1,39 @@
 ---
-
 - name: Configure Platform Toolkit
   hosts: workstation
   vars:
     controller_ansible_version: "{{ lookup('env', 'ANSIBLE_VERSION') | default(false, true) }}"
-    terraform_version: "{{ lookup('env', 'TERRAFORM_VERSION') | default(false, true) }}"
-    helm_version: "{{ lookup('env', 'HELM_VERSION') | default(false, true) }}"
-    kubectl_version: "{{ lookup('env', 'KUBECTL_VERSION') | default(false, true) }}"
-    gcloud_version: "{{ lookup('env', 'GCLOUD_VERSION') | default('345.0.0', true) }}"
-    packer_version: "{{ lookup('env', 'PACKER_VERSION') | default(false, true) }}"
-    vault_version: "{{ lookup('env', 'VAULT_VERSION') | default(false, true) }}"
+    github_download_location: $HOME/bin
+    github_download_packages:
+      - name: tfsec
+        repo: aquasecurity/tfsec
+        version: latest
+        filename: "tfsec-%OS%-%ARCH%"
+      - name: grype
+        repo: anchore/grype
+        version: latest
+        filename: grype_%NVERSION%_%OS%_%ARCH%.tar.gz
+      - name: tk
+        repo: grafana/tanka
+        version: latest
+        filename: tk-%OS%-%ARCH%
+      - name: jb
+        repo: jsonnet-bundler/jsonnet-bundler
+        version: latest
+        filename: jb-%OS%-%ARCH%
+      - name: kind
+        repo: kubernetes-sigs/kind
+        version: latest
+        filename: kind-%OS%-%ARCH%
     platform_install_role:
       - ansible
       - terraform
       - helm
       - kubectl
-      - packer
-      - vault
+      - github_downloader
     pip_install_packages:
       - bashate
-      - kube-hunter
       - molecule
-      - awscli
-    platform_download_packages:
-      - name: krew
-        repo: kubernetes-sigs/krew
-        version: "{{ lookup('env', 'KREW_VERSION') | default('latest', true) }}"
-        filename: "krew-%OS%_%ARCH%.tar.gz"
-        extracted_filename: "krew-%OS%_%ARCH%"
-      - name: tfsec
-        repo: aquasecurity/tfsec
-        version: "{{ lookup('env', 'TFSEC_VERSION') | default('latest', true) }}"
-        filename: "tfsec-%OS%-%ARCH%"
-      - name: grype
-        repo: anchore/grype
-        version: "{{ lookup('env', 'GRYPE_VERSION') | default('latest', true) }}"
-        filename: "grype_%NVERSION%_%OS%_%ARCH%.tar.gz"
-      - name: tk
-        repo: grafana/tanka
-        version: "{{ lookup('env', 'TK_VERSION') | default('latest', true) }}"
-        filename: "tk-%OS%-%ARCH%"
-      - name: jb
-        repo: jsonnet-bundler/jsonnet-bundler
-        version: "{{ lookup('env', 'JB_VERSION') | default('latest', true) }}"
-        filename: "jb-%OS%-%ARCH%"
-      - name: kind
-        repo: kubernetes-sigs/kind
-        version: "{{ lookup('env', 'KIND_VERSION') | default('latest', true) }}"
-        filename: "kind-%OS%-%ARCH%"
-      - name: terraform-docs
-        repo: terraform-docs/terraform-docs
-        version: "{{ lookup('env', 'TFDOCS_VERSION') | default('latest', true) }}"
-        filename: "terraform-docs-%VERSION%-%OS%-%ARCH%.tar.gz"
-      - name: istiocli
-        repo: istio/istio
-        version: "{{ lookup('env', 'ISTIOCLI_VERSION') | default('latest', true) }}"
-        filename: "terraform-%NVERSION%-%OS%-%ARCH%.tar.gz"
   tasks:
     # Running pre-defined roles
     - name: Ensure roles are executed
@@ -77,30 +55,11 @@
         loop_var: pip_pkg
       loop: "{{ pip_install_packages }}"
 
-    # Install gcloud
-    - name: Ensure gcloud installer is downloaded and extracted
-      ansible.builtin.unarchive:
-        src: "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-{{ gcloud_version }}-linux-x86_64.tar.gz"
-        dest: "{{ ansible_user_dir }}/bin"
-        remote_src: true
-
-    - name: Ensure gcloud is installed
-      ansible.builtin.command:
-        cmd: "{{ ansible_user_dir }}/bin/google-cloud-sdk/install.sh"
-        creates: "{{ ansible_user_dir }}/.config/gcloud"
-
     # Install helm-diff
     - name: Ensure helm-diff is installed
       ansible.builtin.command:
         cmd: "{{ ansible_user_dir }}/bin/helm plugin install https://github.com/databus23/helm-diff"
         creates: "{{ ansible_user_dir }}/.local/share/helm/plugins/helm-diff"
-
-    # Install Binaries from GitHub
-    - name: Ensure GitHub packages are downloaded
-      include_tasks: github_download.yml
-      loop: "{{ platform_download_packages }}"
-      loop_control:
-        loop_var: github_pkg
 
     # Install OhMyBash
     - name: Ensure OhMyBash installer is downloaded

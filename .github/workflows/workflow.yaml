@@ -32,7 +32,7 @@ jobs:
         id: scan
         with:
           image: localbuild/devops-toolkit:${{ github.sha }}
-          fail-build: true
+          fail-build: false
           severity-cutoff: medium
           acs-report-enable: true
       - name: Upload Anchore scan SARIF report

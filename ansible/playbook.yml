@@ -61,6 +61,24 @@
         cmd: "{{ ansible_user_dir }}/bin/helm plugin install https://github.com/databus23/helm-diff"
         creates: "{{ ansible_user_dir }}/.local/share/helm/plugins/helm-diff"
 
+    # Install granted
+    - name: Ensure granted is installed
+      ansible.builtin.unarchive:
+        url: "https://releases.commonfate.io/granted/v0.2.9/granted_0.2.9_linux_x86_64.tar.gz"
+        dest: "/usr/local/bin/"
+        remote_src: yes
+
+    # Install AWS CLI
+    - name: Ensure awscli in downloaded
+      ansible.builtin.unarchive:
+        url: "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
+        dest: "{{ ansible_user_dir }}/bin"
+        remote_src: yes
+
+    - name: Ensure gcloud is installed
+      ansible.builtin.command:
+        cmd: "{{ ansible_user_dir }}/bin/aws/install"
+
     # Install OhMyBash
     - name: Ensure OhMyBash installer is downloaded
       ansible.builtin.get_url:

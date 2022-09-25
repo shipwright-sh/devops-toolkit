@@ -3,6 +3,7 @@
   hosts: workstation
   vars:
     controller_ansible_version: "{{ lookup('env', 'ANSIBLE_VERSION') | default(false, true) }}"
+    awscli_version: false
     github_download_location: $HOME/bin
     github_download_packages:
       - name: tfsec
@@ -27,6 +28,7 @@
         filename: kind-%OS%-%ARCH%
     platform_install_role:
       - ansible
+      - awscli
       - terraform
       - helm
       - kubectl
@@ -64,20 +66,9 @@
     # Install granted
     - name: Ensure granted is installed
       ansible.builtin.unarchive:
-        url: "https://releases.commonfate.io/granted/v0.2.9/granted_0.2.9_linux_x86_64.tar.gz"
-        dest: "/usr/local/bin/"
-        remote_src: yes
-
-    # Install AWS CLI
-    - name: Ensure awscli in downloaded
-      ansible.builtin.unarchive:
-        url: "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
+        src: "https://releases.commonfate.io/granted/v0.2.9/granted_0.2.9_linux_x86_64.tar.gz"
         dest: "{{ ansible_user_dir }}/bin"
         remote_src: yes
-
-    - name: Ensure gcloud is installed
-      ansible.builtin.command:
-        cmd: "{{ ansible_user_dir }}/bin/aws/install"
 
     # Install OhMyBash
     - name: Ensure OhMyBash installer is downloaded
